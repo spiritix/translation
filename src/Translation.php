@@ -119,7 +119,7 @@ class Translation implements TranslationInterface
                 ->update(['is_relevant' => true]);
 
             DB::table('translations')
-                ->whereIn('id', array_values($this->translationIds))
+                ->whereIn('translation_id', array_values($this->translationIds))
                 ->update(['is_relevant' => true]);
 
             $this->translationIds = [];
