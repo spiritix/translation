@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Session;
 use InvalidArgumentException;
 use Stevebauman\Translation\Contracts\Client as ClientInterface;
 use Stevebauman\Translation\Contracts\Translation as TranslationInterface;
-use Stevebauman\Translation\Jobs\Actualize;
+use Illuminate\Support\Facades\DB;
 use UnexpectedValueException;
 
 class Translation implements TranslationInterface
@@ -77,11 +77,6 @@ class Translation implements TranslationInterface
     private $translationIds = [];
 
     /**
-     * @var int
-     */
-    private $maxTokensPerJob = 100;
-
-    /**
      * {@inheritdoc}
      */
     public function __construct(Application $app)
@@ -119,8 +114,13 @@ class Translation implements TranslationInterface
     public function __destruct()
     {
         if (count($this->translationIds) > 0) {
-            Actualize::dispatch(array_values($this->translationIds))
-                ->onQueue(config('queue.queues.files'));
+            DB::table('translations')
+                ->whereIn('id', array_values($this->translationIds))
+                ->update(['is_relevant' => true]);
+
+            DB::table('translations')
+                ->whereIn('id', array_values($this->translationIds))
+                ->update(['is_relevant' => true]);
 
             $this->translationIds = [];
         }
@@ -141,15 +141,7 @@ class Translation implements TranslationInterface
             $defaultTranslation = $this->getDefaultTranslation($text);
 
             if (empty($defaultTranslation->is_relevant)) {
-                if (count($this->translationIds) >= $this->maxTokensPerJob) {
-                    Actualize::dispatch(array_values($this->translationIds))
-                        ->onQueue(config('queue.queues.files'));
-
-                    $this->translationIds = [];
-                }
-                else {
-                    $this->translationIds[$defaultTranslation->id] = $defaultTranslation->id;
-                }
+                $this->translationIds[$defaultTranslation->id] = $defaultTranslation->id;
             }
 
             // If there are replacements inside the array we need to convert them
@@ -184,15 +176,7 @@ class Translation implements TranslationInterface
             );
 
             if (empty($translation->is_relevant)) {
-                if (count($this->translationIds) >= $this->maxTokensPerJob) {
-                    Actualize::dispatch(array_values($this->translationIds))
-                        ->onQueue(config('queue.queues.files'));
-
-                    $this->translationIds = [];
-                }
-                else {
-                    $this->translationIds[$translation->id] = $translation->id;
-                }
+                $this->translationIds[$translation->id] = $translation->id;
             }
 
             // If there are replacements inside the array we need to convert them
