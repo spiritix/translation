@@ -72,11 +72,6 @@ class Translation implements TranslationInterface
     private $cacheTime = 30;
 
     /**
-     * @var array
-     */
-    private $translationIds = [];
-
-    /**
      * {@inheritdoc}
      */
     public function __construct(Application $app)
@@ -111,21 +106,6 @@ class Translation implements TranslationInterface
         $this->setCacheTime($this->getConfigCacheTime());
     }
 
-    public function __destruct()
-    {
-        if (count($this->translationIds) > 0) {
-            DB::table('translations')
-                ->whereIn('id', array_values($this->translationIds))
-                ->update(['is_relevant' => true]);
-
-            DB::table('translations')
-                ->whereIn('translation_id', array_values($this->translationIds))
-                ->update(['is_relevant' => true]);
-
-            $this->translationIds = [];
-        }
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -139,10 +119,6 @@ class Translation implements TranslationInterface
             // and the default application locale if they don't
             // exist using firstOrCreate
             $defaultTranslation = $this->getDefaultTranslation($text);
-
-            if (empty($defaultTranslation->is_relevant)) {
-                $this->translationIds[$defaultTranslation->id] = $defaultTranslation->id;
-            }
 
             // If there are replacements inside the array we need to convert them
             // into google translate safe placeholders. ex :name to __name__
@@ -174,10 +150,6 @@ class Translation implements TranslationInterface
                 $defaultTranslation->translation,
                 $defaultTranslation
             );
-
-            if (empty($translation->is_relevant)) {
-                $this->translationIds[$translation->id] = $translation->id;
-            }
 
             // If there are replacements inside the array we need to convert them
             // into google translate safe placeholders. ex :name to name
@@ -470,11 +442,6 @@ class Translation implements TranslationInterface
         $cachedTranslation = $this->cache->get($id);
 
         if ($cachedTranslation instanceof Model) {
-
-            if (empty($cachedTranslation->is_relevant)) {
-                $this->cache->forget($id);
-            }
-
             return $cachedTranslation;
         }
 
