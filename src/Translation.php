@@ -77,7 +77,7 @@ class Translation implements TranslationInterface
     public function __construct(Application $app)
     {
         $this->config = $app->make('config');
-        $this->cache = $app->make('cache');
+        $this->cache = $app->make('cache')->store('local');
         $this->request = $app->make('request');
 
         $this->localeModel = $app->make($this->getConfigLocaleModel());
